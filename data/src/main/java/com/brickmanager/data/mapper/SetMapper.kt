@@ -15,7 +15,7 @@ fun SetEntity.toDomain(): Set {
         series = "TODO", // Not stored in the local DB, simplified for now.
         pieceCount = this.pieceCount,
         isBuilt = this.isBuilt,
-        estimatedMarketValue = this.estimatedMarketValue
+        imageUrl = this.imageUrl
     )
 }
 
@@ -30,6 +30,6 @@ fun Set.toEntity(): SetEntity {
         name = this.name,
         pieceCount = this.pieceCount,
         isBuilt = this.isBuilt,
-        estimatedMarketValue = this.estimatedMarketValue
+        imageUrl = this.imageUrl
     )
 }

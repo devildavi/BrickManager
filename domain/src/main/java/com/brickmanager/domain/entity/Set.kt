@@ -4,12 +4,12 @@ package com.brickmanager.domain.entity
  * Represents a single LEGO set in the domain layer.
  * This is a pure data class representing the business model.
  *
- * @property id The unique identifier for the set (e.g., "75301").
+ * @property id The unique identifier for the set (e.g., "75301-1").
  * @property name The official name of the set.
  * @property series The theme or series the set belongs to (e.g., "Star Wars").
  * @property pieceCount The total number of pieces in the set.
  * @property isBuilt Flag indicating whether the user has built this set.
- * @property estimatedMarketValue The approximate market value, used for statistics.
+ * @property imageUrl The URL for an image of the set.
  */
 data class Set(
     val id: String,
@@ -17,5 +17,5 @@ data class Set(
     val series: String,
     val pieceCount: Int,
     val isBuilt: Boolean = false,
-    val estimatedMarketValue: Double
+    val imageUrl: String?
 )

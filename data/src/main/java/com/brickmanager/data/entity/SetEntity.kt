@@ -11,7 +11,7 @@ import androidx.room.PrimaryKey
  * @property name The official name of the set.
  * @property pieceCount The total number of pieces in the set.
  * @property isBuilt Flag indicating whether the user has built this set.
- * @property estimatedMarketValue The approximate market value of the set.
+ * @property imageUrl The URL for an image of the set.
  */
 @Entity(tableName = "inventory_sets")
 data class SetEntity(
@@ -20,5 +20,5 @@ data class SetEntity(
     val name: String,
     val pieceCount: Int,
     val isBuilt: Boolean,
-    val estimatedMarketValue: Double
+    val imageUrl: String?
 )

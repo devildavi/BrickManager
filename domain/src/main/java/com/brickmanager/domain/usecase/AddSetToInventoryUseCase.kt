@@ -13,8 +13,12 @@ class AddSetToInventoryUseCase(private val inventoryRepository: InventoryReposit
     /**
      * Executes the use case.
      * @param setId The ID of the set to be added to the inventory.
+     * @throws IllegalArgumentException if the setId is blank.
      */
     suspend operator fun invoke(setId: String) {
+        if (setId.isBlank()) {
+            throw IllegalArgumentException("Set ID cannot be empty or blank.")
+        }
         inventoryRepository.addSet(setId)
     }
 }

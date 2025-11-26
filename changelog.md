@@ -1,5 +1,25 @@
 # Changelog
 
+## Version 0.2.0 - Rebrickable API Integration & UI Enhancements
+
+### ✨ New Features
+
+*   **Remote API Integration**: The application now connects to the live **Rebrickable API** to fetch details for LEGO sets, replacing the previous data simulation.
+*   **Set Image Display**: The inventory list now displays an image for each set, loaded from the URL provided by the Rebrickable API using the **Coil** library.
+*   **API Integration Test**: An instrumented test has been added to verify the connection and data parsing from the Rebrickable API.
+
+### 🐛 Bug Fixes
+
+*   **Fixed API Calls**: Corrected the Rebrickable API calls to automatically append the required `-1` suffix to set numbers, resolving 404 errors.
+*   **Passed All Unit Tests**: All unit tests in the `:app`, `:data`, and `:domain` modules have been updated and are now passing after recent data model changes.
+
+### ♻️ Refactoring
+
+*   **Data Models**: The core `Set` entity was updated to remove `estimatedMarketValue` and include `imageUrl`, aligning the data model with the new API source.
+*   **API Key Management**: The Rebrickable API key is now securely accessed via `BuildConfig` and is no longer hardcoded.
+
+---
+
 ## Version 0.1.0 - Architecture Setup and Inventory MVP
 
 ### ✨ New Features

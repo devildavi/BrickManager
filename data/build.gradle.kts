@@ -1,8 +1,18 @@
+import java.util.Properties
+import java.io.FileInputStream
+
 plugins {
     id("com.android.library")
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+}
+
+// Read the local.properties file to get the API key
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(FileInputStream(localPropertiesFile))
 }
 
 android {
@@ -11,6 +21,13 @@ android {
 
     defaultConfig {
         minSdk = 28
+
+        // Make the API key available in the BuildConfig file
+        buildConfigField("String", "REBRICKABLE_API_KEY", "\"${localProperties.getProperty("rebrickable.api.key")}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     compileOptions {

@@ -1,48 +1,58 @@
 package com.brickmanager.data.repository
 
+import com.brickmanager.data.BuildConfig
 import com.brickmanager.data.dao.SetDao
 import com.brickmanager.data.entity.SetEntity
 import com.brickmanager.data.mapper.toDomain
-import com.brickmanager.domain.repository.InventoryRepository
+import com.brickmanager.data.remote.RebrickableApiService
 import com.brickmanager.domain.entity.Set
+import com.brickmanager.domain.repository.InventoryRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 import javax.inject.Inject
 
 /**
  * Concrete implementation of the [InventoryRepository] interface.
  * This class is responsible for orchestrating data operations between the local database
- * and potential remote data sources.
+ * and the Rebrickable remote API.
  *
  * @param setDao The Data Access Object for inventory sets, provided by Room.
+ * @param apiService The Retrofit service for fetching remote set details from Rebrickable.
  */
 class InventoryRepositoryImpl @Inject constructor(
     private val setDao: SetDao,
-    // private val remoteDataSource: RemoteDataSource // Placeholder for a future remote data source
+    private val apiService: RebrickableApiService
 ) : InventoryRepository {
 
     override fun getSetInventory(): Flow<List<Set>> {
-        // Maps the Flow of database entities to a Flow of domain models.
         return setDao.getSetInventory().map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
     override suspend fun addSet(setId: String) {
-        // Step 1: In a real implementation, fetch full set details from a remote API.
-        // val remoteSet = remoteDataSource.getSetDetails(setId)
+        try {
+            val formattedSetId = if (setId.contains("-")) setId else "$setId-1"
 
-        // SIMULATION: Create a new SetEntity with placeholder data.
-        val newSet = SetEntity(
-            id = setId,
-            name = "Simulated Set $setId",
-            pieceCount = 100,
-            isBuilt = false,
-            estimatedMarketValue = 49.99
-        )
+            val remoteDetails = apiService.getSetDetails(formattedSetId, BuildConfig.REBRICKABLE_API_KEY)
 
-        // Step 2: Save the new set to the local database.
-        setDao.insertSet(newSet)
+            val newSetEntity = SetEntity(
+                id = remoteDetails.set_num,
+                name = remoteDetails.name,
+                pieceCount = remoteDetails.num_parts,
+                isBuilt = false,
+                imageUrl = remoteDetails.set_img_url
+            )
+            setDao.insertSet(newSetEntity)
+
+        } catch (e: IOException) {
+            throw IOException("Network error connecting to Rebrickable. Please try again later.")
+        } catch (e: retrofit2.HttpException) {
+            throw Exception("The set with ID $setId does not exist or the Rebrickable server failed (${e.code()}) - ${e.message()}")
+        } catch (e: Exception) {
+            throw Exception("An unknown error occurred while processing set information.")
+        }
     }
 
     override suspend fun updateSetBuiltStatus(setId: String, isBuilt: Boolean) {

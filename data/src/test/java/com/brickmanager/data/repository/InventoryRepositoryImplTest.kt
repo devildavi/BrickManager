@@ -2,6 +2,8 @@ package com.brickmanager.data.repository
 
 import com.brickmanager.data.dao.SetDao
 import com.brickmanager.data.entity.SetEntity
+import com.brickmanager.data.remote.RebrickableApiService
+import com.brickmanager.data.remote.model.RebrickableSetResponse
 import com.brickmanager.domain.entity.Set
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
@@ -13,86 +15,110 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
+import java.io.IOException
 
 class InventoryRepositoryImplTest {
 
-    // Declaramos el mock para la dependencia (la interfaz de Room)
     @MockK
     private lateinit var mockSetDao: SetDao
-    
-    // La instancia real que vamos a probar
+
+    @MockK
+    private lateinit var mockApiService: RebrickableApiService
+
     private lateinit var repository: InventoryRepositoryImpl
 
     @Before
     fun setup() {
-        // Inicializa los mocks anotados
         MockKAnnotations.init(this)
-        // Crea la instancia real, inyectando el mock del DAO
-        repository = InventoryRepositoryImpl(mockSetDao)
+        repository = InventoryRepositoryImpl(mockSetDao, mockApiService)
     }
 
     @Test
     fun `getSetInventory should map SetEntity to Domain Set correctly`() = runTest {
-        // ARRANGE (Preparar): 
-        
-        // 1. Crear una lista de entidades de datos (lo que simula devolver Room)
+        // ARRANGE
         val entityList = listOf(
             SetEntity(
-                id = "42115", 
-                name = "Lamborghini Sián FKP 37", 
-                pieceCount = 3696, 
-                isBuilt = true, 
-                estimatedMarketValue = 379.99
+                id = "42115-1",
+                name = "Lamborghini Sián FKP 37",
+                pieceCount = 3696,
+                isBuilt = true,
+                imageUrl = null
             )
         )
-        
-        // 2. Definir el comportamiento del Mock: Cuando se llame a getSetInventory en el DAO, 
-        // debe devolver el Flow de nuestra lista de entidades.
         coEvery { mockSetDao.getSetInventory() } returns flowOf(entityList)
 
-        // ACT (Actuar): Llamar a la función del repositorio y obtener el primer valor del Flow.
-        val result = repository.getSetInventory().first() 
+        // ACT
+        val result = repository.getSetInventory().first()
 
-        // ASSERT (Afirmar): 
-        
-        // 1. Verificar el tamaño
+        // ASSERT
         assertEquals(1, result.size)
-        
-        // 2. Verificar que el mapeo fue correcto para la entidad de Dominio
         val expectedDomainSet = Set(
-            id = "42115",
+            id = "42115-1",
             name = "Lamborghini Sián FKP 37",
-            series = "TODO", // Coincide con la simulación en el Mapper
+            series = "TODO", // This comes from the mapper's placeholder
             pieceCount = 3696,
             isBuilt = true,
-            estimatedMarketValue = 379.99
+            imageUrl = null
         )
-        
         assertEquals(expectedDomainSet, result.first())
     }
 
     @Test
-    fun `addSet should insert a SetEntity into the DAO`() = runTest {
-        // ARRANGE
-        val testSetId = "75301"
-        
-        // Creamos una entidad que esperamos que sea insertada (simulando el mapeo)
-        // Nota: El repositorio actualmente usa datos quemados (hardcoded) para la simulación
-        // de datos remotos, por lo que la entidad esperada debe coincidir con esa simulación.
-        val expectedEntity = SetEntity(
-            id = testSetId, 
-            name = "Simulated Set 75301", 
-            pieceCount = 100, 
-            isBuilt = false, 
-            estimatedMarketValue = 49.99
-        )
+    fun `addSet should call apiService and insert mapped entity into DAO`() = runTest {
+        val testSetId = "42115-1"
 
-        // No definimos comportamiento para el mock, pero SÍ verificaremos que se llamó a la inserción.
+        // ARRANGE: Define the response the API mock should give
+        val apiResponse = RebrickableSetResponse(
+            set_num = testSetId,
+            name = "Lamborghini Sián",
+            num_parts = 3696,
+            year = 2020,
+            set_img_url = null,
+            last_modified_dt = ""
+        )
+        coEvery { mockApiService.getSetDetails(testSetId, any()) } returns apiResponse
+
+        coEvery { mockSetDao.insertSet(any()) } returns Unit
 
         // ACT
         repository.addSet(testSetId)
 
-        // ASSERT: Verificar que el metodo 'insertSet' del DAO fue llamado con la entidad esperada.
-        coVerify(exactly = 1) { mockSetDao.insertSet(expectedEntity) } 
+        // ASSERT 1: Verify the API service was called with the correct set number
+        coVerify(exactly = 1) { mockApiService.getSetDetails(testSetId, any()) }
+
+        // ASSERT 2: Verify the DAO was called with the correctly MAPPED entity.
+        val expectedEntity = SetEntity(
+            id = testSetId,
+            name = "Lamborghini Sián",
+            pieceCount = 3696,
+            isBuilt = false,
+            imageUrl = null
+        )
+        coVerify(exactly = 1) { mockSetDao.insertSet(expectedEntity) }
+    }
+
+    @Test(expected = IOException::class)
+    fun `addSet should throw IOException when API call fails due to network error`() = runTest {
+        val testSetId = "99999-1"
+
+        // ARRANGE: Simulate a network failure
+        coEvery { mockApiService.getSetDetails(testSetId, any()) } throws IOException()
+
+        // ACT
+        repository.addSet(testSetId)
+    }
+
+    @Test(expected = Exception::class)
+    fun `addSet should throw descriptive Exception when API returns 404 Not Found`() = runTest {
+        val testSetId = "00000-1"
+
+        // ARRANGE: Simulate a 404 Not Found error
+        val errorResponse = Response.error<Any>(404, okhttp3.ResponseBody.create(null, ""))
+        coEvery { mockApiService.getSetDetails(testSetId, any()) } throws HttpException(errorResponse)
+
+        // ACT
+        repository.addSet(testSetId)
     }
 }

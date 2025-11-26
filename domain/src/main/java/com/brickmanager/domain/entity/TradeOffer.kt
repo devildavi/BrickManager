@@ -16,17 +16,3 @@ data class TradeOffer(
     val desiredSetId: String,
     val status: OfferStatus
 )
-
-/**
- * Defines the possible statuses of a [TradeOffer].
- */
-enum class OfferStatus {
-    /** The offer has been created but not yet actioned. */
-    PENDING,
-    /** The offer has been accepted by the other party. */
-    ACCEPTED,
-    /** The trade has been successfully completed. */
-    COMPLETED,
-    /** The offer has been cancelled by the creator or rejected. */
-    CANCELLED
-}
