@@ -3,6 +3,7 @@ package com.example.brickmanager.di
 import com.brickmanager.domain.repository.InventoryRepository
 import com.brickmanager.domain.usecase.AddSetToInventoryUseCase
 import com.brickmanager.domain.usecase.GetSetInventoryUseCase
+import com.brickmanager.domain.usecase.UpdateSetStatusUseCase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -39,5 +40,17 @@ object DomainModule {
         inventoryRepository: InventoryRepository
     ): AddSetToInventoryUseCase {
         return AddSetToInventoryUseCase(inventoryRepository)
+    }
+
+    /**
+     * Provides an instance of [UpdateSetStatusUseCase].
+     * @param inventoryRepository The repository required by the use case.
+     * @return An instance of [UpdateSetStatusUseCase].
+     */
+    @Provides
+    fun provideUpdateSetStatusUseCase(
+        inventoryRepository: InventoryRepository
+    ): UpdateSetStatusUseCase {
+        return UpdateSetStatusUseCase(inventoryRepository)
     }
 }

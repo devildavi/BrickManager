@@ -29,10 +29,11 @@ interface SetDao {
     suspend fun insertSet(set: SetEntity)
 
     /**
-     * Updates the built status of a specific set.
+     * Updates the built status and build date of a specific set.
      * @param setId The ID of the set to update.
      * @param isBuilt The new built status to set.
+     * @param buildDate The date the set was built, or null if not built.
      */
-    @Query("UPDATE inventory_sets SET isBuilt = :isBuilt WHERE id = :setId")
-    suspend fun updateSetBuiltStatus(setId: String, isBuilt: Boolean)
+    @Query("UPDATE inventory_sets SET isBuilt = :isBuilt, buildDate = :buildDate WHERE id = :setId")
+    suspend fun updateSetBuiltStatus(setId: String, isBuilt: Boolean, buildDate: String?)
 }

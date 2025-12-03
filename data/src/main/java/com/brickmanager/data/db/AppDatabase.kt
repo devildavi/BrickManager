@@ -12,7 +12,7 @@ import com.brickmanager.data.entity.SetEntity
  * @see SetEntity
  * @see SetDao
  */
-@Database(entities = [SetEntity::class], version = 2, exportSchema = false) // Incremented version
+@Database(entities = [SetEntity::class], version = 5, exportSchema = false) // Version incremented
 abstract class AppDatabase : RoomDatabase() {
 
     /**

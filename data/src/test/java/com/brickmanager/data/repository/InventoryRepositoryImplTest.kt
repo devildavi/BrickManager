@@ -3,8 +3,11 @@ package com.brickmanager.data.repository
 import com.brickmanager.data.dao.SetDao
 import com.brickmanager.data.entity.SetEntity
 import com.brickmanager.data.remote.RebrickableApiService
+import com.brickmanager.data.remote.model.RebrickableMinifigResponse
 import com.brickmanager.data.remote.model.RebrickableSetResponse
+import com.brickmanager.data.remote.model.RebrickableThemeResponse
 import com.brickmanager.domain.entity.Set
+import com.brickmanager.data.utils.getCurrentDate
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -42,9 +45,13 @@ class InventoryRepositoryImplTest {
             SetEntity(
                 id = "42115-1",
                 name = "Lamborghini Sián FKP 37",
+                series = "Technic",
                 pieceCount = 3696,
+                minifigCount = 0,
                 isBuilt = true,
-                imageUrl = null
+                imageUrl = null,
+                acquisitionDate = "2023-10-27",
+                buildDate = "2023-10-28"
             )
         )
         coEvery { mockSetDao.getSetInventory() } returns flowOf(entityList)
@@ -57,44 +64,58 @@ class InventoryRepositoryImplTest {
         val expectedDomainSet = Set(
             id = "42115-1",
             name = "Lamborghini Sián FKP 37",
-            series = "TODO", // This comes from the mapper's placeholder
+            series = "Technic",
             pieceCount = 3696,
+            minifigCount = 0,
             isBuilt = true,
-            imageUrl = null
+            imageUrl = null,
+            acquisitionDate = "2023-10-27",
+            buildDate = "2023-10-28"
         )
         assertEquals(expectedDomainSet, result.first())
     }
 
     @Test
-    fun `addSet should call apiService and insert mapped entity into DAO`() = runTest {
-        val testSetId = "42115-1"
+    fun `call all APIs and insert mapped entity into DAO`() = runTest {
+        val testSetId = "75301-1"
 
-        // ARRANGE: Define the response the API mock should give
-        val apiResponse = RebrickableSetResponse(
+        // ARRANGE: Define mock responses for all API calls
+        val setDetailsResponse = RebrickableSetResponse(
             set_num = testSetId,
-            name = "Lamborghini Sián",
-            num_parts = 3696,
-            year = 2020,
-            set_img_url = null,
+            name = "Luke Skywalker\'s X-Wing Fighter",
+            num_parts = 474,
+            year = 2021,
+            set_img_url = "image_url",
+            theme_id = 158, // Star Wars theme ID
             last_modified_dt = ""
         )
-        coEvery { mockApiService.getSetDetails(testSetId, any()) } returns apiResponse
+        val minifigResponse = RebrickableMinifigResponse(count = 4, results = emptyList())
+        val themeResponse = RebrickableThemeResponse(id = 158, name = "Star Wars", parent_id = null)
 
+        coEvery { mockApiService.getSetDetails(testSetId, any()) } returns setDetailsResponse
+        coEvery { mockApiService.getMinifiguresForSet(testSetId, any()) } returns minifigResponse
+        coEvery { mockApiService.getThemeDetails(158, any()) } returns themeResponse
         coEvery { mockSetDao.insertSet(any()) } returns Unit
 
         // ACT
-        repository.addSet(testSetId)
+        repository.addSet("75301") // Use the ID without suffix, as the user would
 
-        // ASSERT 1: Verify the API service was called with the correct set number
+        // ASSERT: Verify all API services were called
         coVerify(exactly = 1) { mockApiService.getSetDetails(testSetId, any()) }
+        coVerify(exactly = 1) { mockApiService.getMinifiguresForSet(testSetId, any()) }
+        coVerify(exactly = 1) { mockApiService.getThemeDetails(158, any()) }
 
-        // ASSERT 2: Verify the DAO was called with the correctly MAPPED entity.
+        // ASSERT: Verify the DAO was called with the correctly combined entity
         val expectedEntity = SetEntity(
             id = testSetId,
-            name = "Lamborghini Sián",
-            pieceCount = 3696,
+            name = "Luke Skywalker\'s X-Wing Fighter",
+            series = "Star Wars",
+            pieceCount = 474,
+            minifigCount = 4,
             isBuilt = false,
-            imageUrl = null
+            imageUrl = "image_url",
+            acquisitionDate = getCurrentDate(), // Check against the real date
+            buildDate = null
         )
         coVerify(exactly = 1) { mockSetDao.insertSet(expectedEntity) }
     }
@@ -102,23 +123,15 @@ class InventoryRepositoryImplTest {
     @Test(expected = IOException::class)
     fun `addSet should throw IOException when API call fails due to network error`() = runTest {
         val testSetId = "99999-1"
-
-        // ARRANGE: Simulate a network failure
-        coEvery { mockApiService.getSetDetails(testSetId, any()) } throws IOException()
-
-        // ACT
+        coEvery { mockApiService.getSetDetails(any(), any()) } throws IOException()
         repository.addSet(testSetId)
     }
 
     @Test(expected = Exception::class)
     fun `addSet should throw descriptive Exception when API returns 404 Not Found`() = runTest {
         val testSetId = "00000-1"
-
-        // ARRANGE: Simulate a 404 Not Found error
         val errorResponse = Response.error<Any>(404, okhttp3.ResponseBody.create(null, ""))
-        coEvery { mockApiService.getSetDetails(testSetId, any()) } throws HttpException(errorResponse)
-
-        // ACT
+        coEvery { mockApiService.getSetDetails(any(), any()) } throws HttpException(errorResponse)
         repository.addSet(testSetId)
     }
 }

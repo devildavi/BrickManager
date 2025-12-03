@@ -4,11 +4,12 @@ import app.cash.turbine.test
 import com.brickmanager.domain.entity.Set
 import com.brickmanager.domain.usecase.AddSetToInventoryUseCase
 import com.brickmanager.domain.usecase.GetSetInventoryUseCase
+import com.brickmanager.domain.usecase.UpdateSetStatusUseCase
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
-import io.mockk.impl.annotations.MockK
+import io.mockk.impl.annotations.RelaxedMockK
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -24,14 +25,17 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class InventoryViewModelTest {
 
-    @MockK
+    @RelaxedMockK
     private lateinit var mockGetSetInventoryUseCase: GetSetInventoryUseCase
-    @MockK
+
+    @RelaxedMockK
     private lateinit var mockAddSetToInventoryUseCase: AddSetToInventoryUseCase
+
+    @RelaxedMockK
+    private lateinit var mockUpdateSetStatusUseCase: UpdateSetStatusUseCase
 
     private lateinit var viewModel: InventoryViewModel
 
-    // 1. Usamos StandardTestDispatcher para controlar la ejecución
     private val testDispatcher = StandardTestDispatcher()
 
     @Before
@@ -39,10 +43,10 @@ class InventoryViewModelTest {
         MockKAnnotations.init(this)
         Dispatchers.setMain(testDispatcher)
 
-        val fakeSets = listOf(Set(id = "10294", name = "Titanic", series = "Creator", pieceCount = 9090, isBuilt = false, imageUrl = ""))
+        val fakeSets = listOf(Set(id = "10294-1", name = "Titanic", series = "Creator Expert", pieceCount = 9090, minifigCount = 0, isBuilt = false, imageUrl = null, acquisitionDate = null, buildDate = null))
         every { mockGetSetInventoryUseCase.invoke() } returns flowOf(fakeSets)
 
-        viewModel = InventoryViewModel(mockGetSetInventoryUseCase, mockAddSetToInventoryUseCase)
+        viewModel = InventoryViewModel(mockGetSetInventoryUseCase, mockAddSetToInventoryUseCase, mockUpdateSetStatusUseCase)
     }
 
     @After
@@ -53,7 +57,7 @@ class InventoryViewModelTest {
     @Test
     fun `loadInventory should transition through loading to success state`() = runTest {
         // ARRANGE: Inicializamos el ViewModel. Su bloque init{} agenda la corrutina, pero NO la ejecuta aún.
-        viewModel = InventoryViewModel(mockGetSetInventoryUseCase, mockAddSetToInventoryUseCase)
+        viewModel = InventoryViewModel(mockGetSetInventoryUseCase, mockAddSetToInventoryUseCase, mockUpdateSetStatusUseCase)
 
         viewModel.uiState.test {
             // 1. AWAIT INICIAL: El estado por defecto antes de que la corrutina se ejecute.
@@ -80,20 +84,17 @@ class InventoryViewModelTest {
     }
 
     @Test
-    fun `onAddSetClicked should call AddSetToInventoryUseCase`() = runTest {
-        // ARRANGE
-        val setIdToAdd = "75301"
-        coEvery { mockAddSetToInventoryUseCase(any()) } returns Unit
-        viewModel = InventoryViewModel(mockGetSetInventoryUseCase, mockAddSetToInventoryUseCase)
+    fun `onAddSetClicked should call addSetToInventoryUseCase with correct ID`() = runTest {
+        val testId = "75292"
 
         // ACT
-        viewModel.onAddSetClicked(setIdToAdd)
+        viewModel.onAddSetClicked(testId)
+
         // Avanzamos el dispatcher para que se ejecute la corrutina lanzada en el ViewModel
         testDispatcher.scheduler.advanceUntilIdle()
 
-        // ASSERT
-        // Verificamos que el caso de uso fue llamado exactamente una vez con el ID correcto.
-        coVerify(exactly = 1) { mockAddSetToInventoryUseCase(setIdToAdd) }
+        // ASSERT: Verify that the Use Case was invoked.
+        coVerify(exactly = 1) { mockAddSetToInventoryUseCase.invoke(testId) }
     }
 
     @Test
@@ -101,12 +102,11 @@ class InventoryViewModelTest {
         val expectedError = "Set ID cannot be empty or blank."
         val invalidId = ""
 
-        // ARRANGE
-        // 1. Configura el mock para que lance la excepción esperada.
+        // ARRANGE: Make the Use Case throw the validation exception
         coEvery { mockAddSetToInventoryUseCase(invalidId) } throws IllegalArgumentException(expectedError)
 
         // 2. Inicializa el ViewModel. El loadInventory() inicial se agenda.
-        viewModel = InventoryViewModel(mockGetSetInventoryUseCase, mockAddSetToInventoryUseCase)
+        viewModel = InventoryViewModel(mockGetSetInventoryUseCase, mockAddSetToInventoryUseCase, mockUpdateSetStatusUseCase)
 
         // 3. Ejecuta la carga inicial para tener un estado base limpio.
         testDispatcher.scheduler.advanceUntilIdle()
@@ -130,5 +130,4 @@ class InventoryViewModelTest {
             cancelAndConsumeRemainingEvents()
         }
     }
-
 }

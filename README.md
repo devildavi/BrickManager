@@ -18,6 +18,8 @@ BrickManager is a modern Android application designed for LEGO enthusiasts to ma
 
 *   **View Inventory**: See your entire collection of LEGO sets in a clean list, complete with images for each set.
 *   **Add New Sets**: Add new sets to your collection by providing the official Set ID. The app fetches the set details and image from the Rebrickable API and adds it to your local database.
+*   **Interactive Set Status**: Toggle a switch to mark a set as "Built" or "In Box". The change is saved and reflected instantly.
+*   **Rich Data Display**: The app now shows the set's theme, minifigure count, acquisition date, and build date.
 *   **Real-time Updates**: The UI automatically updates in real-time as your collection changes.
 *   **Error Handling**: The app gracefully handles network errors or cases where a Set ID is not found.
 
@@ -29,8 +31,8 @@ This project follows the principles of **Clean Architecture**, with a clear sepa
 *   **Purpose**: Contains the core business logic and models of the application. It is a pure Kotlin module with no dependencies on Android or any framework.
 *   **Components**:
     *   **Entities**: Pure data classes (`Set`, `Brick`) that represent the core business objects.
-    *   **Repository Interfaces**: Contracts (`InventoryRepository`) that define how data should be accessed by the domain, but without knowing *how* it is implemented.
-    *   **Use Cases**: Encapsulate specific business rules (`GetSetInventoryUseCase`, `AddSetToInventoryUseCase`).
+    *   **Repository Interfaces**: Contracts (`InventoryRepository`) that define how data should be accessed by the domain.
+    *   **Use Cases**: Encapsulate specific business rules (`GetSetInventoryUseCase`, `AddSetToInventoryUseCase`, `UpdateSetStatusUseCase`).
 
 ### 2. `:data` Module
 *   **Purpose**: Implements the repository interfaces defined in the `:domain` layer. It is responsible for orchestrating data from various sources (local database, remote API).

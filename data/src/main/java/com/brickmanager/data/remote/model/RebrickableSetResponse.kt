@@ -9,5 +9,6 @@ data class RebrickableSetResponse(
     val num_parts: Int,
     val year: Int,
     val set_img_url: String?,
+    val theme_id: Int, // Added theme_id
     val last_modified_dt: String
 )

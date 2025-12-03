@@ -12,10 +12,13 @@ fun SetEntity.toDomain(): Set {
     return Set(
         id = this.id,
         name = this.name,
-        series = "TODO", // Not stored in the local DB, simplified for now.
+        series = this.series,
         pieceCount = this.pieceCount,
+        minifigCount = this.minifigCount,
         isBuilt = this.isBuilt,
-        imageUrl = this.imageUrl
+        imageUrl = this.imageUrl,
+        acquisitionDate = this.acquisitionDate,
+        buildDate = this.buildDate
     )
 }
 
@@ -28,8 +31,12 @@ fun Set.toEntity(): SetEntity {
     return SetEntity(
         id = this.id,
         name = this.name,
+        series = this.series,
         pieceCount = this.pieceCount,
+        minifigCount = this.minifigCount,
         isBuilt = this.isBuilt,
-        imageUrl = this.imageUrl
+        imageUrl = this.imageUrl,
+        acquisitionDate = this.acquisitionDate,
+        buildDate = this.buildDate
     )
 }
